@@ -1,4 +1,7 @@
 import os
+import yfinance as yf
+import pandas as pd
+
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     Application,
