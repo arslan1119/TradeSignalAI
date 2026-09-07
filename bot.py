@@ -158,7 +158,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML"
         )
 
-elif message == "📜 Signal History":
+    elif message == "📜 Signal History":
     if not signal_history:
         await update.message.reply_text(
             "📜 <b>SIGNAL HISTORY</b>\n\nHeniz signal ýok.",
@@ -182,8 +182,8 @@ elif message == "📜 Signal History":
             parse_mode="HTML"
         )
 
-elif message == "💎 Premium":
-    await update.message.reply_text(
+    elif message == "💎 Premium":
+        await update.message.reply_text(
         "💎 <b>PREMIUM</b>\n\n"
         "✨ Advanced analysis\n"
         "🔔 More notifications\n"
@@ -192,8 +192,8 @@ elif message == "💎 Premium":
         parse_mode="HTML"
     )
 
-elif message == "⚙️ Settings":
-    await update.message.reply_text(
+    elif message == "⚙️ Settings":
+        await update.message.reply_text(
         "⚙️ <b>SETTINGS</b>\n\n"
         "🕒 Timezone: UTC+5\n"
         "🔔 Notifications\n"
@@ -202,8 +202,8 @@ elif message == "⚙️ Settings":
         parse_mode="HTML"
     )
 
-elif message == "❓ Help":
-    await update.message.reply_text(
+    elif message == "❓ Help":
+        await update.message.reply_text(
         "❓ <b>HELP</b>\n\n"
         "TradeSignal AI — bazar maglumatlaryny we "
         "tehniki indikatorlary analiz edýär.\n\n"
