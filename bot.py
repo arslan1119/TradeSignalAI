@@ -57,17 +57,27 @@ def analyze_market(symbol="EURUSD=X"):
         rs = avg_gain / avg_loss
         rsi = 100 - (100 / (1 + rs))
 
+        # Latest values
         price = float(close.iloc[-1])
         ema20_value = float(ema20.iloc[-1])
         ema50_value = float(ema50.iloc[-1])
         rsi_value = float(rsi.iloc[-1])
 
+        # Trend
         if ema20_value > ema50_value:
             trend = "📈 UP TREND"
         elif ema20_value < ema50_value:
             trend = "📉 DOWN TREND"
         else:
             trend = "➡️ SIDEWAYS"
+
+        # Signal
+        if trend == "📈 UP TREND" and rsi_value < 70:
+            signal = "🟢 BUY"
+        elif trend == "📉 DOWN TREND" and rsi_value > 30:
+            signal = "🔴 SELL"
+        else:
+            signal = "🟡 WAIT"
 
         return f"""
 📈 <b>LIVE MARKET ANALYSIS</b>
@@ -81,6 +91,8 @@ def analyze_market(symbol="EURUSD=X"):
 📉 RSI 14: <b>{rsi_value:.2f}</b>
 
 🔥 Trend: <b>{trend}</b>
+
+🎯 Signal: <b>{signal}</b>
 
 ⚠️ Bu diňe maglumatlaýyn bazar analizi.
 """
