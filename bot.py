@@ -111,7 +111,9 @@ def analyze_market(symbol="EURUSD=X"):
 
     except Exception as e:
          return f"❌ Error: {str(e)}"
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start(update: Update,
+context:
+ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
 
     text = f"""
