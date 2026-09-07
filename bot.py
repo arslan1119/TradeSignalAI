@@ -109,7 +109,7 @@ def analyze_market(symbol="EURUSD=X"):
         ⚠️ Bu diňe maglumatlaýyn bazar analizi.
         """
 
-        except Exception as e:
+    except Exception as e:
         return f"❌ Error: {str(e)}"
         async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
