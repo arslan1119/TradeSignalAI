@@ -13,7 +13,7 @@ from telegram.ext import (
 )
 
 TOKEN = os.getenv("BOT_TOKEN")
-
+signal_history = []
 MENU = ReplyKeyboardMarkup(
     [
         ["📈 Live Signals", "📊 Market Analytics"],
