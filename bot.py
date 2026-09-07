@@ -111,28 +111,28 @@ def analyze_market(symbol="EURUSD=X"):
 
     except Exception as e:
          return f"❌ Error: {str(e)}"
-   async def start(update:    Update,    context:    ContextTypes.DEFAULT_TYPE):
-         user = update.effective_user
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
 
-         text = f"""
-         🤖 <b>TradeSignal AI</b>
+    text = f"""
+🤖 <b>TradeSignal AI</b>
 
-         Salam, {user.first_name}! 👋
+Salam, {user.first_name}! 👋
 
-         📊 Professional market analysis
-         📈 Trading signal dashboard
-         🤖 AI-powered filters
-         🕐 UTC+5 timezone
-         💎 Premium features
+📊 Professional market analysis
+📈 Trading signal dashboard
+🤖 AI-powered filters
+🕒 UTC+5 timezone
+💎 Premium features
 
-         Soňky mümkinçilikleriň birini saýla.
-         """
+Soňky mümkinçilikleriň birini saýla.
+"""
 
-            await update.message.reply_text(
-               text,
-               reply_markup=MENU,
-               parse_mode="HTML"
-         )
+    await update.message.reply_text(
+        text,
+        reply_markup=MENU,
+        parse_mode="HTML"
+    )
 
 async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message.text
