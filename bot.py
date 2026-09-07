@@ -158,9 +158,11 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML"
         )
 
-    elif message == "📜 Signal History":
-    if not signal_history:
-        await update.message.reply_text(
+    elif message == "📜 Signal
+    History":
+        if not signal_history:
+            await
+    update.message.reply_text(
             "📜 <b>SIGNAL HISTORY</b>\n\nHeniz signal ýok.",
             parse_mode="HTML"
         )
