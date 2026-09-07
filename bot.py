@@ -22,7 +22,68 @@ MENU = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
+def analyze_market(symbol="EURUSD=X"):
+    try:
+        data = yf.download(
+            symbol,
+            period="5d",
+            interval="5m",
+            progress=False
+        )
 
+        if data.empty:
+            return "❌ Bazardan maglumat alyp bolmady."
+
+        close = data["Close"]
+
+        # EMA 20
+        ema20 = close.ewm(span=20, adjust=False).mean()
+
+        # EMA 50
+        ema50 = close.ewm(span=50, adjust=False).mean()
+
+        # RSI 14
+        delta = close.diff()
+
+        gain = delta.where(delta > 0, 0)
+        loss = -delta.where(delta < 0, 0)
+
+        avg_gain = gain.rolling(14).mean()
+        avg_loss = loss.rolling(14).mean()
+
+        rs = avg_gain / avg_loss
+        rsi = 100 - (100 / (1 + rs))
+
+        price = float(close.iloc[-1])
+        ema20_value = float(ema20.iloc[-1])
+        ema50_value = float(ema50.iloc[-1])
+        rsi_value = float(rsi.iloc[-1])
+
+        if ema20_value > ema50_value:
+            trend = "📈 UP TREND"
+        elif ema20_value < ema50_value:
+            trend = "📉 DOWN TREND"
+        else:
+            trend = "➡️ SIDEWAYS"
+
+        return f"""
+📈 <b>LIVE MARKET ANALYSIS</b>
+
+💱 Pair: <b>{symbol}</b>
+💰 Price: <b>{price:.5f}</b>
+
+📊 EMA 20: <b>{ema20_value:.5f}</b>
+📊 EMA 50: <b>{ema50_value:.5f}</b>
+
+📉 RSI 14: <b>{rsi_value:.2f}</b>
+
+🔥 Trend: <b>{trend}</b>
+
+⚠️ Bu diňe maglumatlaýyn bazar analizi.
+"""
+
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
 
@@ -47,15 +108,13 @@ Soňky mümkinçilikleriň birini saýla.
     )
 
 
-async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = update.message.text
+if message == "📈 Live Signals":
 
-    if message == "📈 Live Signals":
-        await update.message.reply_text(
-            "📈 <b>LIVE SIGNALS</b>\n\n"
-            "🔍 Bazar analizi entek birikdirilmedi.\n"
-            "Indiki ädimde EMA, RSI we trend analizini goşarys.",
-            parse_mode="HTML"
+    analysis = analyze_market("EURUSD=X")
+
+    await update.message.reply_text(
+        analysis,
+        parse_mode="HTML"
         )
 
     elif message == "📊 Market Analytics":
