@@ -78,7 +78,7 @@ def analyze_market(symbol="EURUSD=X"):
         elif trend == "📉 DOWN TREND" and rsi_value > 30:
             signal = "🔴 SELL"
         else:
-            signal = "🟡 WAIT
+            signal = "🟡 WAIT"
 
 signal_history.append({
     "symbol": symbol,
