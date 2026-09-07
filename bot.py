@@ -107,7 +107,9 @@ Soňky mümkinçilikleriň birini saýla.
         parse_mode="HTML"
     )
 
-
+async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = update.message.text
+    
     if message == "📈 Live Signals":
         analysis = analyze_market("EURUSD=X")
 
