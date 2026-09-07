@@ -117,7 +117,7 @@ if message == "📈 Live Signals":
         parse_mode="HTML"
         )
 
-    elif message == "📊 Market Analytics":
+elif message == "📊 Market Analytics":
         await update.message.reply_text(
             "📊 <b>MARKET ANALYTICS</b>\n\n"
             "📈 Trend analysis\n"
