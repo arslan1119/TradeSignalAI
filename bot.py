@@ -90,7 +90,7 @@ def analyze_market(symbol="EURUSD=X"):
  
         # diňe soňky 10 signal saklanýar
         if len(signal_history) > 10:
-        signal_history.pop(0)
+            signal_history.pop(0)
         return f"""
         📈 <b>LIVE MARKET ANALYSIS</b>
 
