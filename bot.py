@@ -156,9 +156,30 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     elif message == "📜 Signal History":
+
+    if not signal_history:
         await update.message.reply_text(
             "📜 <b>SIGNAL HISTORY</b>\n\n"
-            "Soňky signallaryň statistikasy soň goşular.",
+            "Heniz signal ýok.\n\n"
+            "📈 Live Signals düwmesine basyp ilkinji analizi başlat.",
+            parse_mode="HTML"
+        )
+
+    else:
+        history_text = "📜 <b>SIGNAL HISTORY</b>\n\n"
+
+        for item in reversed(signal_history):
+            history_text += (
+                f"💱 <b>{item['symbol']}</b>\n"
+                f"🎯 Signal: <b>{item['signal']}</b>\n"
+                f"💰 Price: <b>{item['price']:.5f}</b>\n"
+                f"🔥 Trend: <b>{item['trend']}</b>\n"
+                f"🕒 Time: {item['time']}\n"
+                "━━━━━━━━━━━━━━\n"
+            )
+
+        await update.message.reply_text(
+            history_text,
             parse_mode="HTML"
         )
 
