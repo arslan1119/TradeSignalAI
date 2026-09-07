@@ -37,7 +37,7 @@ def analyze_market(symbol="EURUSD=X"):
         close = data["Close"]
 
         if hasattr(close, "columns"):
-        close = close.iloc[:, 0]
+            close = close.iloc[:, 0]
 
         # EMA 20
         ema20 = close.ewm(span=20, adjust=False).mean()
