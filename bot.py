@@ -110,8 +110,7 @@ def analyze_market(symbol="EURUSD=X"):
         """
 
     except Exception as e:
-         return f"❌ Error:
-{str(e)}"
+         return f"❌ Error: {str(e)}"
         
 async def start(update: Update,
 context:
