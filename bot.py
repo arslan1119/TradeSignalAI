@@ -163,8 +163,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not signal_history:
         await update.message.reply_text(
             "📜 <b>SIGNAL HISTORY</b>\n\n"
-            "Heniz signal ýok.\n\n"
-            "📈 Live Signals düwmesine basyp ilkinji analizi başlat.",
+            "Heniz signal ýok.",
             parse_mode="HTML"
         )
 
@@ -175,15 +174,16 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             history_text += (
                 f"💱 <b>{item['symbol']}</b>\n"
                 f"🎯 Signal: <b>{item['signal']}</b>\n"
-                f"💰 Price: <b>{item['price']:.5f}</b>\n"
+                f"💰 Price: <b>{item['price']}</b>\n"
                 f"🔥 Trend: <b>{item['trend']}</b>\n"
                 f"🕒 Time: {item['time']}\n"
-                "━━━━━━━━━━━━━━\n"
+                "──────────────\n"
             )
 
         await update.message.reply_text(
             history_text,
             parse_mode="HTML"
+        )
         )
 
     elif message == "💎 Premium":
