@@ -1,5 +1,6 @@
 import os
 import yfinance as yf
+from datetime import datetime
 import pandas as pd
 
 from telegram import Update, ReplyKeyboardMarkup
@@ -77,8 +78,19 @@ def analyze_market(symbol="EURUSD=X"):
         elif trend == "📉 DOWN TREND" and rsi_value > 30:
             signal = "🔴 SELL"
         else:
-            signal = "🟡 WAIT"
+            signal = "🟡 WAIT
 
+signal_history.append({
+    "symbol": symbol,
+    "signal": signal,
+    "price": price,
+    "trend": trend,
+    "time": datetime.now().strftime("%H:%M")
+})
+
+# diňe soňky 10 signal saklanýar
+if len(signal_history) > 10:
+    signal_history.pop(0)
         return f"""
 📈 <b>LIVE MARKET ANALYSIS</b>
 
