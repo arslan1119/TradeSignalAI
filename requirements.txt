@@ -1,4 +1,6 @@
 python-telegram-bot==21.10
 python-dotenv==1.0.1
-yfinance
+binance
 pandas
+yfinance
+ta
