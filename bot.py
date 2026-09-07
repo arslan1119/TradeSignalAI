@@ -128,11 +128,11 @@ def analyze_market(symbol="EURUSD=X"):
          Soňky mümkinçilikleriň birini saýla.
          """
 
-    await update.message.reply_text(
-        text,
-        reply_markup=MENU,
-        parse_mode="HTML"
-    )
+            await update.message.reply_text(
+               text,
+               reply_markup=MENU,
+               parse_mode="HTML"
+         )
 
 async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message.text
