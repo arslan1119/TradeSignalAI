@@ -184,7 +184,6 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             history_text,
             parse_mode="HTML"
         )
-        )
 
     elif message == "💎 Premium":
         await update.message.reply_text(
