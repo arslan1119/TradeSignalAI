@@ -108,22 +108,21 @@ Soňky mümkinçilikleriň birini saýla.
     )
 
 
-if message == "📈 Live Signals":
+    if message == "📈 Live Signals":
+        analysis = analyze_market("EURUSD=X")
 
-    analysis = analyze_market("EURUSD=X")
-
-    await update.message.reply_text(
-        analysis,
-        parse_mode="HTML"
+        await update.message.reply_text(
+            analysis,
+            parse_mode="HTML"
         )
 
-elif message == "📊 Market Analytics":
+    elif message == "📊 Market Analytics":
         await update.message.reply_text(
             "📊 <b>MARKET ANALYTICS</b>\n\n"
             "📈 Trend analysis\n"
             "📊 Technical indicators\n"
             "📉 Support & Resistance\n"
-            "📰 Market filters",
+            "🗺️ Market filters",
             parse_mode="HTML"
         )
 
