@@ -80,38 +80,38 @@ def analyze_market(symbol="EURUSD=X"):
         else:
             signal = "🟡 WAIT"
 
-    signal_history.append({
-    "symbol": symbol,
-    "signal": signal,
-    "price": price,
-    "trend": trend,
-    "time": datetime.now().strftime("%H:%M")
-    })
-
-    # diňe soňky 10 signal saklanýar
-    if len(signal_history) > 10:
-    signal_history.pop(0)
+        signal_history.append({
+        "symbol": symbol,
+        "signal": signal,
+        "price": price,
+        "trend": trend,
+        "time": datetime.now().strftime("%H:%M")
+        })
+ 
+        # diňe soňky 10 signal saklanýar
+        if len(signal_history) > 10:
+        signal_history.pop(0)
         return f"""
-    📈 <b>LIVE MARKET ANALYSIS</b>
+        📈 <b>LIVE MARKET ANALYSIS</b>
 
-    💱 Pair: <b>{symbol}</b>
-    💰 Price: <b>{price:.5f}</b>
+        💱 Pair: <b>{symbol}</b>
+        💰 Price: <b>{price:.5f}</b>
 
-    📊 EMA 20: <b>{ema20_value:.5f}</b>
-    📊 EMA 50: <b>{ema50_value:.5f}</b>
+        📊 EMA 20: <b>{ema20_value:.5f}</b>
+        📊 EMA 50: <b>{ema50_value:.5f}</b>
 
-    📉 RSI 14: <b>{rsi_value:.2f}</b>
+        📉 RSI 14: <b>{rsi_value:.2f}</b>
 
-    🔥 Trend: <b>{trend}</b>
+        🔥 Trend: <b>{trend}</b>
 
-    🎯 Signal: <b>{signal}</b>
+        🎯 Signal: <b>{signal}</b>
+  
+        ⚠️ Bu diňe maglumatlaýyn bazar analizi.
+        """
 
-    ⚠️ Bu diňe maglumatlaýyn bazar analizi.
-    """
-
-    except Exception as e:
+        except Exception as e:
         return f"❌ Error: {str(e)}"
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
 
     text = f"""
