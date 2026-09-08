@@ -1,75 +1,57 @@
 import os
+import logging
 from datetime import datetime, timezone, timedelta
 
 import pandas as pd
 import yfinance as yf
 
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    ContextTypes,
-    MessageHandler,
-    filters,
+from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
+
+logging.basicConfig(
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    level=logging.INFO
 )
-
-
-# ============================================================
-# CONFIG
-# ============================================================
+logger = logging.getLogger("TradeSignalAI")
 
 TOKEN = os.getenv("BOT_TOKEN")
-
 UTC5 = timezone(timedelta(hours=5))
 
-signal_history = []
-user_settings = {}
-
-
-# ============================================================
-# FOREX PAIRS
-# ============================================================
-
 PAIRS = {
-    "🇪🇺 EUR/USD": "EURUSD=X",
-    "🇬🇧 GBP/USD": "GBPUSD=X",
-    "🇺🇸 USD/JPY": "JPY=X",
-    "🇦🇺 AUD/USD": "AUDUSD=X",
-    "🇺🇸 USD/CAD": "CAD=X",
-    "🇳🇿 NZD/USD": "NZDUSD=X",
-    "🇪🇺 EUR/GBP": "EURGBP=X",
-    "🇪🇺 EUR/JPY": "EURJPY=X",
-    "🇬🇧 GBP/JPY": "GBPJPY=X",
-    "🇦🇺 AUD/JPY": "AUDJPY=X",
-    "🇨🇭 USD/CHF": "CHF=X",
-    "🇪🇺 EUR/CHF": "EURCHF=X",
-    "🇬🇧 GBP/CHF": "GBPCHF=X",
-    "🇦🇺 AUD/CAD": "AUDCAD=X",
-    "🇦🇺 AUD/NZD": "AUDNZD=X",
-    "🇳🇿 NZD/JPY": "NZDJPY=X",
+    "EUR/USD": "EURUSD=X",
+    "GBP/USD": "GBPUSD=X",
+    "USD/JPY": "JPY=X",
+    "AUD/USD": "AUDUSD=X",
+    "USD/CAD": "CAD=X",
+    "USD/CHF": "CHF=X",
+    "NZD/USD": "NZDUSD=X",
+    "EUR/GBP": "EURGBP=X",
+    "EUR/JPY": "EURJPY=X",
+    "GBP/JPY": "GBPJPY=X",
+    "AUD/JPY": "AUDJPY=X",
+    "EUR/CHF": "EURCHF=X",
+    "GBP/CHF": "GBPCHF=X",
+    "AUD/CAD": "AUDCAD=X",
+    "AUD/NZD": "AUDNZD=X",
+    "CAD/JPY": "CADJPY=X",
+    "CHF/JPY": "CHFJPY=X",
+    "NZD/JPY": "NZDJPY=X",
 }
-
-
-# ============================================================
-# TIMEFRAMES
-# ============================================================
 
 TIMEFRAMES = {
-    "⏱ 5 SEC": "1m",
-    "⏱ 10 SEC": "1m",
-    "⏱ 15 SEC": "1m",
-    "⏱ 30 SEC": "1m",
-    "🕐 1 MIN": "1m",
-    "🕔 5 MIN": "5m",
-    "🕙 10 MIN": "5m",
+    "5 SEC": "fast",
+    "10 SEC": "fast",
+    "15 SEC": "fast",
+    "30 SEC": "fast",
+    "1 MIN": "1m",
+    "5 MIN": "5m",
+    "10 MIN": "5m",
+    "15 MIN": "15m",
+    "30 MIN": "30m",
+    "1 HOUR": "60m",
 }
 
-
-# ============================================================
-# MAIN MENU
-# ============================================================
-
-MENU = ReplyKeyboardMarkup(
+MAIN_MENU = ReplyKeyboardMarkup(
     [
         ["📈 Live Signals", "🔥 Strongest Signal"],
         ["💱 Select Pair", "⏱ Select Time"],
@@ -79,950 +61,398 @@ MENU = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-
-TIME_MENU = ReplyKeyboardMarkup(
+PAIR_MENU = InlineKeyboardMarkup(
     [
-        ["⏱ 5 SEC", "⏱ 10 SEC"],
-        ["⏱ 15 SEC", "⏱ 30 SEC"],
-        ["🕐 1 MIN", "🕔 5 MIN"],
-        ["🕙 10 MIN"],
-        ["🔙 Back"],
-    ],
-    resize_keyboard=True
+        [
+            InlineKeyboardButton("🇪🇺 EUR/USD", callback_data="pair:EUR/USD"),
+            InlineKeyboardButton("🇬🇧 GBP/USD", callback_data="pair:GBP/USD"),
+        ],
+        [
+            InlineKeyboardButton("🇺🇸 USD/JPY", callback_data="pair:USD/JPY"),
+            InlineKeyboardButton("🇦🇺 AUD/USD", callback_data="pair:AUD/USD"),
+        ],
+        [
+            InlineKeyboardButton("🇺🇸 USD/CAD", callback_data="pair:USD/CAD"),
+            InlineKeyboardButton("🇺🇸 USD/CHF", callback_data="pair:USD/CHF"),
+        ],
+        [
+            InlineKeyboardButton("🇳🇿 NZD/USD", callback_data="pair:NZD/USD"),
+            InlineKeyboardButton("🇪🇺 EUR/GBP", callback_data="pair:EUR/GBP"),
+        ],
+        [
+            InlineKeyboardButton("🇪🇺 EUR/JPY", callback_data="pair:EUR/JPY"),
+            InlineKeyboardButton("🇬🇧 GBP/JPY", callback_data="pair:GBP/JPY"),
+        ],
+        [
+            InlineKeyboardButton("🇦🇺 AUD/JPY", callback_data="pair:AUD/JPY"),
+            InlineKeyboardButton("🇪🇺 EUR/CHF", callback_data="pair:EUR/CHF"),
+        ],
+        [
+            InlineKeyboardButton("🇬🇧 GBP/CHF", callback_data="pair:GBP/CHF"),
+            InlineKeyboardButton("🇦🇺 AUD/CAD", callback_data="pair:AUD/CAD"),
+        ],
+        [
+            InlineKeyboardButton("🇦🇺 AUD/NZD", callback_data="pair:AUD/NZD"),
+            InlineKeyboardButton("🇨🇦 CAD/JPY", callback_data="pair:CAD/JPY"),
+        ],
+        [
+            InlineKeyboardButton("🇨🇭 CHF/JPY", callback_data="pair:CHF/JPY"),
+            InlineKeyboardButton("🇳🇿 NZD/JPY", callback_data="pair:NZD/JPY"),
+        ],
+    ]
 )
 
-
-PAIR_MENU = ReplyKeyboardMarkup(
+TIME_MENU = InlineKeyboardMarkup(
     [
-        ["🇪🇺 EUR/USD", "🇬🇧 GBP/USD"],
-        ["🇺🇸 USD/JPY", "🇦🇺 AUD/USD"],
-        ["🇺🇸 USD/CAD", "🇳🇿 NZD/USD"],
-        ["🇪🇺 EUR/GBP", "🇪🇺 EUR/JPY"],
-        ["🇬🇧 GBP/JPY", "🇦🇺 AUD/JPY"],
-        ["🇨🇭 USD/CHF", "🇪🇺 EUR/CHF"],
-        ["🇬🇧 GBP/CHF", "🇦🇺 AUD/CAD"],
-        ["🇦🇺 AUD/NZD", "🇳🇿 NZD/JPY"],
-        ["🔙 Back"],
-    ],
-    resize_keyboard=True
+        [
+            InlineKeyboardButton("5 SEC", callback_data="time:5 SEC"),
+            InlineKeyboardButton("10 SEC", callback_data="time:10 SEC"),
+            InlineKeyboardButton("15 SEC", callback_data="time:15 SEC"),
+        ],
+        [
+            InlineKeyboardButton("30 SEC", callback_data="time:30 SEC"),
+            InlineKeyboardButton("1 MIN", callback_data="time:1 MIN"),
+            InlineKeyboardButton("5 MIN", callback_data="time:5 MIN"),
+        ],
+        [
+            InlineKeyboardButton("10 MIN", callback_data="time:10 MIN"),
+            InlineKeyboardButton("15 MIN", callback_data="time:15 MIN"),
+            InlineKeyboardButton("30 MIN", callback_data="time:30 MIN"),
+        ],
+        [InlineKeyboardButton("1 HOUR", callback_data="time:1 HOUR")],
+    ]
 )
 
-
-# ============================================================
-# USER SETTINGS
-# ============================================================
-
-def get_user_config(user_id):
-
-    if user_id not in user_settings:
-
-        user_settings[user_id] = {
-            "time_button": "🕔 5 MIN",
-            "timeframe": "5m",
-            "pair_name": "🇪🇺 EUR/USD",
-            "symbol": "EURUSD=X",
-        }
-
-    return user_settings[user_id]
-
-
-# ============================================================
-# MARKET ANALYSIS
-# ============================================================
-
-def analyze_market(symbol="EURUSD=X", timeframe="5m"):
-
-    try:
-
-        # Yahoo Finance does not provide true public
-        # 5-second/10-second/15-second/30-second candles.
-        # Short buttons therefore use the latest 1-minute data.
-
-        period = "5d"
-
-        if timeframe == "1m":
-            period = "1d"
-
-        data = yf.download(
-            symbol,
-            period=period,
-            interval=timeframe,
-            progress=False,
-            auto_adjust=False,
-        )
-
-        if data.empty:
-
-            return {
-                "error": "Bazardan maglumat alyp bolmady."
-            }
-
-        # Handle MultiIndex columns safely
-
-        close = data["Close"]
-
-        if isinstance(close, pd.DataFrame):
-            close = close.iloc[:, 0]
-
-        high = data["High"]
-
-        if isinstance(high, pd.DataFrame):
-            high = high.iloc[:, 0]
-
-        low = data["Low"]
-
-        if isinstance(low, pd.DataFrame):
-            low = low.iloc[:, 0]
-
-        close = close.dropna()
-
-        if len(close) < 60:
-
-            return {
-                "error": "Analiz üçin maglumat ýeterlik däl."
-            }
-
-
-        # ====================================================
-        # EMA
-        # ====================================================
-
-        ema20 = close.ewm(
-            span=20,
-            adjust=False
-        ).mean()
-
-        ema50 = close.ewm(
-            span=50,
-            adjust=False
-        ).mean()
-
-
-        # ====================================================
-        # RSI 14
-        # ====================================================
-
-        delta = close.diff()
-
-        gain = delta.clip(lower=0)
-
-        loss = -delta.clip(upper=0)
-
-        avg_gain = gain.rolling(
-            window=14
-        ).mean()
-
-        avg_loss = loss.rolling(
-            window=14
-        ).mean()
-
-        avg_loss = avg_loss.replace(0, 0.0000001)
-
-        rs = avg_gain / avg_loss
-
-        rsi = 100 - (
-            100 / (1 + rs)
-        )
-
-
-        # ====================================================
-        # LATEST VALUES
-        # ====================================================
-
-        price = float(close.iloc[-1])
-
-        ema20_value = float(ema20.iloc[-1])
-
-        ema50_value = float(ema50.iloc[-1])
-
-        rsi_value = float(rsi.iloc[-1])
-
-
-        # ====================================================
-        # TREND
-        # ====================================================
-
-        if ema20_value > ema50_value:
-
-            trend = "📈 UP TREND"
-
-        elif ema20_value < ema50_value:
-
-            trend = "📉 DOWN TREND"
-
-        else:
-
-            trend = "↔️ SIDEWAYS"
-
-
-        # ====================================================
-        # TREND STRENGTH
-        # ====================================================
-
-        ema_difference = abs(
-            ema20_value - ema50_value
-        )
-
-        percentage_difference = (
-            ema_difference / price
-        ) * 100
-
-        strength = min(
-            100,
-            percentage_difference * 10000
-        )
-
-        if strength < 20:
-
-            strength_text = "🟡 WEAK"
-
-        elif strength < 50:
-
-            strength_text = "🟠 MEDIUM"
-
-        else:
-
-            strength_text = "🟢 STRONG"
-
-
-        # ====================================================
-        # VOLATILITY
-        # ====================================================
-
-        recent_returns = close.pct_change().tail(20)
-
-        volatility = float(
-            recent_returns.std() * 100
-        )
-
-        if volatility < 0.02:
-
-            volatility_text = "🟢 LOW"
-
-        elif volatility < 0.08:
-
-            volatility_text = "🟠 MEDIUM"
-
-        else:
-
-            volatility_text = "🔴 HIGH"
-
-
-        # ====================================================
-        # SUPPORT / RESISTANCE
-        # ====================================================
-
-        recent_low = low.tail(30)
-
-        recent_high = high.tail(30)
-
-        support = float(recent_low.min())
-
-        resistance = float(recent_high.max())
-
-
-        # ====================================================
-        # CANDLE MOMENTUM
-        # ====================================================
-
-        last_close = float(close.iloc[-1])
-
-        previous_close = float(close.iloc[-2])
-
-        momentum = (
-            (last_close - previous_close)
-            / previous_close
-        ) * 100
-
-
-        # ====================================================
-        # BUY SCORE
-        # ====================================================
-
-        buy_score = 0
-
-        if ema20_value > ema50_value:
-            buy_score += 30
-
-        if price > ema20_value:
-            buy_score += 20
-
-        if 50 < rsi_value < 70:
-            buy_score += 25
-
-        if momentum > 0:
-            buy_score += 15
-
-        if strength >= 30:
-            buy_score += 10
-
-
-        # ====================================================
-        # SELL SCORE
-        # ====================================================
-
-        sell_score = 0
-
-        if ema20_value < ema50_value:
-            sell_score += 30
-
-        if price < ema20_value:
-            sell_score += 20
-
-        if 30 < rsi_value < 50:
-            sell_score += 25
-
-        if momentum < 0:
-            sell_score += 15
-
-        if strength >= 30:
-            sell_score += 10
-
-
-        # ====================================================
-        # SIGNAL DECISION
-        # ====================================================
-
-        confidence = max(
-            buy_score,
-            sell_score
-        )
-
-        if (
-            buy_score >= 70
-            and buy_score > sell_score
-        ):
-
-            signal = "🟢 BUY"
-
-        elif (
-            sell_score >= 70
-            and sell_score > buy_score
-        ):
-
-            signal = "🔴 SELL"
-
-        else:
-
-            signal = "🟡 WAIT"
-
-
-        # ====================================================
-        # SIGNAL QUALITY
-        # ====================================================
-
-        if confidence >= 85:
-
-            quality = "💎 VERY STRONG"
-
-        elif confidence >= 70:
-
-            quality = "🔥 STRONG"
-
-        elif confidence >= 55:
-
-            quality = "⚡ MEDIUM"
-
-        else:
-
-            quality = "⚠️ WEAK"
-
-
-        return {
-
-            "price": price,
-
-            "ema20": ema20_value,
-
-            "ema50": ema50_value,
-
-            "rsi": rsi_value,
-
-            "trend": trend,
-
-            "strength": strength,
-
-            "strength_text": strength_text,
-
-            "volatility": volatility,
-
-            "volatility_text": volatility_text,
-
-            "momentum": momentum,
-
-            "signal": signal,
-
-            "confidence": confidence,
-
-            "quality": quality,
-
-            "buy_score": buy_score,
-
-            "sell_score": sell_score,
-
-            "support": support,
-
-            "resistance": resistance,
-
-        }
-
-
-    except Exception as error:
-
-        return {
-            "error": str(error)
-        }
-
-
-# ============================================================
-# FORMAT ANALYSIS
-# ============================================================
-
-def format_analysis(pair_name, time_button, result):
-
-    if "error" in result:
-
-        return (
-            "⚠️ <b>MARKET ERROR</b>\n\n"
-            f"{result['error']}"
-        )
-
-
-    now = datetime.now(UTC5).strftime(
-        "%H:%M:%S"
+def get_settings(context):
+    data = context.user_data
+    data.setdefault("pair", "EUR/USD")
+    data.setdefault("timeframe", "5 MIN")
+    data.setdefault("history", [])
+    return data
+
+def download_data(symbol, interval):
+    if interval == "fast":
+        interval = "1m"
+
+    period_map = {
+        "1m": "1d",
+        "2m": "1d",
+        "5m": "5d",
+        "15m": "5d",
+        "30m": "5d",
+        "60m": "1mo",
+    }
+    period = period_map.get(interval, "5d")
+
+    data = yf.download(
+        symbol,
+        period=period,
+        interval=interval,
+        progress=False,
+        auto_adjust=False,
+        threads=False
     )
 
-
-    return f"""
-📈 <b>ULTIMATE MARKET ANALYSIS</b>
-
-💱 <b>Pair:</b> {pair_name}
-
-⏱ <b>Time:</b> {time_button}
-
-🕐 <b>UTC+5:</b> {now}
-
-
-💰 <b>Price:</b> {result['price']:.5f}
-
-
-━━━━━━━━━━━━━━━━
-
-📊 <b>EMA 20:</b> {result['ema20']:.5f}
-
-📊 <b>EMA 50:</b> {result['ema50']:.5f}
-
-
-📉 <b>RSI 14:</b> {result['rsi']:.2f}
-
-
-🔥 <b>Trend:</b> {result['trend']}
-
-💪 <b>Trend Strength:</b>
-
-{result['strength_text']} ({result['strength']:.0f}%)
-
-
-🌊 <b>Volatility:</b>
-
-{result['volatility_text']}
-
-
-⚡ <b>Momentum:</b>
-
-{result['momentum']:.4f}%
-
-
-━━━━━━━━━━━━━━━━
-
-🎯 <b>Signal Confidence:</b>
-
-{result['confidence']:.0f}%
-
-{result['quality']}
-
-
-🟢 <b>BUY Score:</b> {result['buy_score']}
-
-🔴 <b>SELL Score:</b> {result['sell_score']}
-
-
-━━━━━━━━━━━━━━━━
-
-🚦 <b>MARKET BIAS:</b>
-
-{result['signal']}
-
-
-━━━━━━━━━━━━━━━━
-
-📉 <b>Support:</b>
-
-{result['support']:.5f}
-
-
-📈 <b>Resistance:</b>
-
-{result['resistance']:.5f}
-
-
-━━━━━━━━━━━━━━━━
-
-⚠️ <b>DISCLAIMER</b>
-
-Bu tehniki bazar analizidir.
-Netije kepillendirilen girdeji ýa-da
-hökmany söwda netijesi däldir.
-
-🕐 UTC+5 | TradeSignal AI
-"""
-
-
-# ============================================================
-# STRONGEST SIGNAL
-# ============================================================
-
-def find_strongest_signal(timeframe="5m"):
-
-    best_result = None
-
-    best_pair_name = None
-
-    best_symbol = None
-
-
-    for pair_name, symbol in PAIRS.items():
-
-        try:
-
-            result = analyze_market(
-                symbol,
-                timeframe
-            )
-
-            if "error" in result:
-                continue
-
-
-            if result["signal"] == "🟡 WAIT":
-                continue
-
-
-            if (
-                best_result is None
-                or result["confidence"]
-                > best_result["confidence"]
-            ):
-
-                best_result = result
-
-                best_pair_name = pair_name
-
-                best_symbol = symbol
-
-
-        except Exception:
-
-            continue
-
-
-    if best_result is None:
-
-        return None
-
+    if data is None or data.empty:
+        raise ValueError("Market data is unavailable.")
+
+    if isinstance(data.columns, pd.MultiIndex):
+        data.columns = data.columns.get_level_values(0)
+
+    return data.dropna()
+
+def calculate_analysis(pair_name, timeframe):
+    symbol = PAIRS[pair_name]
+    interval = TIMEFRAMES[timeframe]
+    data = download_data(symbol, interval)
+
+    if len(data) < 55:
+        raise ValueError("Not enough candles for analysis.")
+
+    close = pd.to_numeric(data["Close"], errors="coerce").dropna()
+
+    ema20 = close.ewm(span=20, adjust=False).mean()
+    ema50 = close.ewm(span=50, adjust=False).mean()
+
+    delta = close.diff()
+    gain = delta.clip(lower=0).rolling(14).mean()
+    loss = (-delta.clip(upper=0)).rolling(14).mean()
+    loss = loss.replace(0, 1e-10)
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+
+    price = float(close.iloc[-1])
+    ema20_value = float(ema20.iloc[-1])
+    ema50_value = float(ema50.iloc[-1])
+    rsi_value = float(rsi.iloc[-1])
+
+    recent = close.tail(20)
+    support = float(recent.min())
+    resistance = float(recent.max())
+
+    buy_score = 0
+    sell_score = 0
+
+    if ema20_value > ema50_value:
+        buy_score += 35
+    elif ema20_value < ema50_value:
+        sell_score += 35
+
+    if price > ema20_value:
+        buy_score += 20
+    elif price < ema20_value:
+        sell_score += 20
+
+    if 50 < rsi_value < 70:
+        buy_score += 25
+    elif 30 < rsi_value < 50:
+        sell_score += 25
+    elif rsi_value <= 30:
+        buy_score += 15
+    elif rsi_value >= 70:
+        sell_score += 15
+
+    momentum = float(close.iloc[-1] - close.iloc[-5])
+    if momentum > 0:
+        buy_score += 20
+    elif momentum < 0:
+        sell_score += 20
+
+    if buy_score >= 60 and buy_score > sell_score:
+        signal = "🟢 BUY"
+        trend = "📈 UP TREND"
+        confidence = min(95, buy_score)
+    elif sell_score >= 60 and sell_score > buy_score:
+        signal = "🔴 SELL"
+        trend = "📉 DOWN TREND"
+        confidence = min(95, sell_score)
+    else:
+        signal = "🟡 WAIT"
+        trend = "↔️ SIDEWAYS"
+        confidence = max(40, min(59, max(buy_score, sell_score)))
+
+    strength_value = abs(ema20_value - ema50_value) / max(abs(price), 1e-10) * 100000
+    if strength_value < 5:
+        strength = "🟡 WEAK"
+    elif strength_value < 15:
+        strength = "🟠 MEDIUM"
+    else:
+        strength = "🟢 STRONG"
 
     return {
-        "pair_name": best_pair_name,
-        "symbol": best_symbol,
-        "result": best_result,
+        "pair": pair_name,
+        "timeframe": timeframe,
+        "price": price,
+        "ema20": ema20_value,
+        "ema50": ema50_value,
+        "rsi": rsi_value,
+        "trend": trend,
+        "strength": strength,
+        "confidence": int(confidence),
+        "signal": signal,
+        "support": support,
+        "resistance": resistance,
     }
 
+def format_analysis(a):
+    now = datetime.now(UTC5).strftime("%H:%M:%S")
+    fast_note = ""
+    if a["timeframe"] in {"5 SEC", "10 SEC", "15 SEC", "30 SEC"}:
+        fast_note = "\n⚠️ Fast mode uses the latest available 1-minute market data as a proxy; it is not native tick/second data."
 
-# ============================================================
-# START
-# ============================================================
+    return (
+        "📈 <b>ULTIMATE MARKET ANALYSIS</b>\n\n"
+        f"💱 <b>Pair:</b> {a['pair']}\n"
+        f"⏱ <b>Selected time:</b> {a['timeframe']}\n"
+        f"🕒 <b>UTC+5:</b> {now}\n\n"
+        f"💰 <b>Price:</b> {a['price']:.5f}\n\n"
+        f"📊 <b>EMA 20:</b> {a['ema20']:.5f}\n"
+        f"📊 <b>EMA 50:</b> {a['ema50']:.5f}\n"
+        f"📉 <b>RSI 14:</b> {a['rsi']:.2f}\n\n"
+        f"🔥 <b>Trend:</b> {a['trend']}\n"
+        f"💪 <b>Trend Strength:</b> {a['strength']}\n"
+        f"🎯 <b>Signal Confidence:</b> {a['confidence']}%\n\n"
+        f"🚦 <b>SIGNAL:</b> {a['signal']}\n\n"
+        "━━━━━━━━━━━━━━━━━━\n"
+        f"📉 <b>Support:</b> {a['support']:.5f}\n"
+        f"📈 <b>Resistance:</b> {a['resistance']:.5f}"
+        f"{fast_note}\n\n"
+        "⚠️ <i>This is automated technical analysis, not a guarantee of profit. Always manage risk.</i>"
+    )
 
-async def start(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
-
-    user = update.effective_user
-
-    get_user_config(user.id)
-
-
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    get_settings(context)
     await update.message.reply_text(
-
-        f"""
-🤖 <b>TradeSignal AI Ultimate</b>
-
-Salam, {user.first_name}! 👋
-
-📈 Professional market analysis
-💱 Multiple Forex pairs
-⏱ Multiple timeframes
-🔥 Trend detection
-📊 Technical indicators
-🎯 Confidence system
-🕐 UTC+5 timezone
-
-Soňky mümkinçilikleriň birini saýla.
-""",
-
-        reply_markup=MENU,
-
+        "🤖 <b>TradeSignal AI — Ultimate Edition</b>\n\n"
+        "UTC+5 • Multi-pair • EMA 20/50 • RSI 14 • Support/Resistance • Trend • Confidence\n\n"
+        "Select an option below.",
+        reply_markup=MAIN_MENU,
         parse_mode="HTML"
     )
 
-
-# ============================================================
-# LIVE SIGNAL
-# ============================================================
-
-async def send_live_analysis(
-    update,
-    user_id
-):
-
-    config = get_user_config(user_id)
-
-
+async def show_pair_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "🔄 <b>Market analiz edilýär...</b>",
+        "💱 <b>Select a currency pair:</b>",
+        reply_markup=PAIR_MENU,
         parse_mode="HTML"
     )
 
-
-    result = analyze_market(
-        config["symbol"],
-        config["timeframe"]
-    )
-
-
-    text = format_analysis(
-        config["pair_name"],
-        config["time_button"],
-        result
-    )
-
-
+async def show_time_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        text,
+        "⏱ <b>Select analysis/expiry mode:</b>",
+        reply_markup=TIME_MENU,
         parse_mode="HTML"
     )
 
-
-    if "error" not in result:
-
-        signal_history.append({
-
-            "time": datetime.now(
-                UTC5
-            ).strftime("%H:%M:%S"),
-
-            "pair": config["pair_name"],
-
-            "timeframe": config["time_button"],
-
-            "signal": result["signal"],
-
-            "confidence": result["confidence"],
-
+async def send_analysis(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    settings = get_settings(context)
+    try:
+        await update.message.reply_text("🔄 Analyzing market data...")
+        analysis = calculate_analysis(settings["pair"], settings["timeframe"])
+        settings["history"].append({
+            "time": datetime.now(UTC5).strftime("%Y-%m-%d %H:%M:%S"),
+            "pair": analysis["pair"],
+            "timeframe": analysis["timeframe"],
+            "signal": analysis["signal"],
+            "confidence": analysis["confidence"],
         })
+        settings["history"] = settings["history"][-20:]
+        await update.message.reply_text(
+            format_analysis(analysis),
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        logger.exception("Analysis error")
+        await update.message.reply_text(
+            f"⚠️ Market analysis could not be completed right now.\n\nReason: {str(e)}"
+        )
 
+async def strongest_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🔥 Scanning major pairs...")
+    best = None
 
-        # Keep history limited
+    for pair in PAIRS:
+        try:
+            analysis = calculate_analysis(pair, "5 MIN")
+            if analysis["signal"] == "🟡 WAIT":
+                continue
+            if best is None or analysis["confidence"] > best["confidence"]:
+                best = analysis
+        except Exception:
+            continue
 
-        if len(signal_history) > 30:
-
-            signal_history.pop(0)
-
-
-# ============================================================
-# MENU HANDLER
-# ============================================================
-
-async def menu_handler(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
-
-    if not update.message:
-
+    if best is None:
+        await update.message.reply_text(
+            "🟡 No strong setup found right now. WAIT is safer than forcing a trade."
+        )
         return
 
+    await update.message.reply_text(
+        "🔥 <b>STRONGEST CURRENT SETUP</b>\n\n" + format_analysis(best),
+        parse_mode="HTML"
+    )
 
-    user_id = update.effective_user.id
+async def market_analysis(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await send_analysis(update, context)
 
-    message = update.message.text
+async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    settings = get_settings(context)
+    items = settings["history"]
 
-    config = get_user_config(user_id)
+    if not items:
+        await update.message.reply_text("📜 No analysis history yet.")
+        return
 
-
-    # ========================================================
-    # LIVE SIGNALS
-    # ========================================================
-
-    if message == "📈 Live Signals":
-
-        await send_live_analysis(
-            update,
-            user_id
+    text = "📜 <b>SIGNAL HISTORY</b>\n\n"
+    for item in reversed(items[-10:]):
+        text += (
+            f"🕒 {item['time']}\n"
+            f"💱 {item['pair']} | ⏱ {item['timeframe']}\n"
+            f"🚦 {item['signal']} | 🎯 {item['confidence']}%\n\n"
         )
 
+    await update.message.reply_text(text, parse_mode="HTML")
 
-    # ========================================================
-    # STRONGEST SIGNAL
-    # ========================================================
+async def settings_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    settings = get_settings(context)
+    text = (
+        "⚙️ <b>SETTINGS</b>\n\n"
+        f"💱 Pair: <b>{settings['pair']}</b>\n"
+        f"⏱ Time: <b>{settings['timeframe']}</b>\n"
+        "🕒 Timezone: <b>UTC+5</b>\n\n"
+        "Use 💱 Select Pair and ⏱ Select Time to change settings."
+    )
+    await update.message.reply_text(text, parse_mode="HTML")
 
-    elif message == "🔥 Strongest Signal":
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "❓ <b>HOW TO USE</b>\n\n"
+        "1️⃣ Select a pair\n"
+        "2️⃣ Select a timeframe/expiry mode\n"
+        "3️⃣ Press 📈 Live Signals or 📊 Market Analysis\n"
+        "4️⃣ Read EMA, RSI, trend, support/resistance and confidence\n\n"
+        "⚠️ BUY/SELL/WAIT are automated technical-analysis outputs, not guaranteed results.",
+        parse_mode="HTML"
+    )
 
-        await update.message.reply_text(
-            "🔄 <b>Forex pairs analiz edilýär...</b>",
-            parse_mode="HTML"
-        )
+async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
 
+    if text == "📈 Live Signals":
+        await send_analysis(update, context)
+    elif text == "🔥 Strongest Signal":
+        await strongest_signal(update, context)
+    elif text == "💱 Select Pair":
+        await show_pair_menu(update, context)
+    elif text == "⏱ Select Time":
+        await show_time_menu(update, context)
+    elif text == "📊 Market Analysis":
+        await market_analysis(update, context)
+    elif text == "📜 Signal History":
+        await history(update, context)
+    elif text == "⚙️ Settings":
+        await settings_menu(update, context)
+    elif text == "❓ Help":
+        await help_command(update, context)
 
-        strongest = find_strongest_signal(
-            config["timeframe"]
-        )
+async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
 
+    settings = get_settings(context)
+    data = query.data
 
-        if strongest is None:
-
-            await update.message.reply_text(
-                """
-🟡 <b>Soňky netije:</b>
-
-Häzirki wagtda güýçli signal tapylmady.
-
-Professional düzgün boýunça:
-WAIT etmek has ygtybarly.
-""",
+    if data.startswith("pair:"):
+        pair = data.split(":", 1)[1]
+        if pair in PAIRS:
+            settings["pair"] = pair
+            await query.edit_message_text(
+                f"✅ Selected pair: <b>{pair}</b>",
                 parse_mode="HTML"
             )
 
-            return
-
-
-        text = format_analysis(
-
-            strongest["pair_name"],
-
-            config["time_button"],
-
-            strongest["result"]
-        )
-
-
-        await update.message.reply_text(
-            "🔥 <b>STRONGEST MARKET SETUP</b>\n"
-            "━━━━━━━━━━━━━━━━\n\n"
-            + text,
-            parse_mode="HTML"
-        )
-
-
-    # ========================================================
-    # SELECT PAIR
-    # ========================================================
-
-    elif message == "💱 Select Pair":
-
-        await update.message.reply_text(
-            "💱 <b>Currency pair saýla:</b>",
-            reply_markup=PAIR_MENU,
-            parse_mode="HTML"
-        )
-
-
-    # ========================================================
-    # SELECT TIME
-    # ========================================================
-
-    elif message == "⏱ Select Time":
-
-        await update.message.reply_text(
-            """
-⏱ <b>Timeframe saýla:</b>
-
-⚠️ 5–30 SEC düwmeleri
-iň täze elýeterli 1 MIN maglumatyna
-esaslanýan gysga möhletli analizdir.
-""",
-            reply_markup=TIME_MENU,
-            parse_mode="HTML"
-        )
-
-
-    # ========================================================
-    # PAIR SELECTION
-    # ========================================================
-
-    elif message in PAIRS:
-
-        config["pair_name"] = message
-
-        config["symbol"] = PAIRS[message]
-
-
-        await update.message.reply_text(
-
-            f"""
-✅ <b>Pair saýlandy!</b>
-
-💱 {message}
-
-Indi:
-
-📈 Live Signals
-
-basyp analiz edip bilersiň.
-""",
-
-            reply_markup=MENU,
-
-            parse_mode="HTML"
-        )
-
-
-    # ========================================================
-    # TIMEFRAME SELECTION
-    # ========================================================
-
-    elif message in TIMEFRAMES:
-
-        config["time_button"] = message
-
-        config["timeframe"] = TIMEFRAMES[message]
-
-
-        await update.message.reply_text(
-
-            f"""
-✅ <b>Timeframe saýlandy!</b>
-
-⏱ {message}
-
-Indi 📈 Live Signals bas.
-""",
-
-            reply_markup=MENU,
-
-            parse_mode="HTML"
-        )
-
-
-    # ========================================================
-    # MARKET ANALYSIS
-    # ========================================================
-
-    elif message == "📊 Market Analysis":
-
-        await send_live_analysis(
-            update,
-            user_id
-        )
-
-
-    # ========================================================
-    # SIGNAL HISTORY
-    # ========================================================
-
-    elif message == "📜 Signal History":
-
-        if not signal_history:
-
-            await update.message.reply_text(
-
-                "📜 <b>SIGNAL HISTORY</b>\n\n"
-                "Heniz signal ýok.",
-
+    elif data.startswith("time:"):
+        timeframe = data.split(":", 1)[1]
+        if timeframe in TIMEFRAMES:
+            settings["timeframe"] = timeframe
+            await query.edit_message_text(
+                f"✅ Selected time: <b>{timeframe}</b>\n🕒 Timezone: UTC+5",
                 parse_mode="HTML"
             )
 
-            return
+def main():
+    if not TOKEN:
+        raise RuntimeError("BOT_TOKEN environment variable is missing.")
 
+    app = ApplicationBuilder().token(TOKEN).build()
 
-        history_text = (
-            "📜 <b>SIGNAL HISTORY</b>\n\n"
-        )
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CallbackQueryHandler(callback_handler))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
 
+    logger.info("TradeSignal AI is starting...")
+    app.run_polling(drop_pending_updates=True)
 
-        for item in reversed(
-            signal_history[-10:]
-        ):
-
-            history_text += (
-
-                f"🕐 {item['time']}\n"
-
-                f"💱 {item['pair']}\n"
-
-                f"⏱ {item['timeframe']}\n"
-
-                f"🚦 {item['signal']}\n"
-
-                f"🎯 {item['confidence']:.0f}%\n"
-
-                "━━━━━━━━━━━━\n"
-            )
-
-
-        await update.message.reply_text(
-            history_text,
-            parse_mode="HTML"
-        )
-
-
-    # ========================================================
-    # SETTINGS
-    # ========================================================
-
-    elif message == "⚙️ Settings":
-
-        await update.message.reply_text(
-
-            f"""
-⚙️ <b>SETTINGS</b>
-
-💱 Pair:
-{config['pair_name']}
-
-⏱ Timeframe:
-{config['time_button']}
-
-🕐 Timezone:
-UTC+5
-
-📊 System:
-EMA 20
-EMA 50
-RSI 14
-Momentum
-Volatility
-Support
-Resistance
-Trend Strength
-Confidence Score
-""",
-
-            parse_mode="HTML"
-        )
-
-
-    # ========================================================
-    # HELP
-    # ========================================================
-
-    elif message == "❓ Help":
-
-        await update.message.reply_text(
-
-            """
-❓ <b>TRADE SIGNAL AI HELP</b>
-
-1️⃣ Currency pair saýla
-
-2️⃣ Timef
+if __name__ == "__main__":
+    main()
