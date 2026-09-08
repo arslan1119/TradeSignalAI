@@ -172,12 +172,12 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message.text
     
     if message == "📈 Live Signals":
-        analysis = analyze_market("EURUSD=X")
+    analysis = find_best_signal()
 
-        await update.message.reply_text(
-            analysis,
-            parse_mode="HTML"
-        )
+    await update.message.reply_text(
+        analysis,
+        parse_mode="HTML"
+    )
 
     elif message == "📊 Market Analytics":
         await update.message.reply_text(
