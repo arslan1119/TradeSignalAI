@@ -992,4 +992,4 @@ async def help_command(
         "❓ <b>HOW TO USE</b>\n\n"
         "1️⃣ Select Pair\n"
         "2️⃣ Select Time\n"
-        "3️⃣ Press
+        
