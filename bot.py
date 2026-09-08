@@ -111,7 +111,38 @@ def analyze_market(symbol="EURUSD=X"):
 
     except Exception as e:
          return f"❌ Error: {str(e)}"
-        
+def find_best_signal():
+    pairs = [
+        "EURUSD=X",
+        "GBPUSD=X",
+        "USDJPY=X",
+        "AUDUSD=X"
+    ]
+
+    signals = []
+
+    for pair in pairs:
+        result = analyze_market(pair)
+
+        if "BUY" in result:
+            signals.append({
+                "pair": pair,
+                "signal": "BUY",
+                "result": result
+            })
+
+        elif "SELL" in result:
+            signals.append({
+                "pair": pair,
+                "signal": "SELL",
+                "result": result
+            })
+
+    if not signals:
+        return "⚠️ Güýçli signal tapylmady."
+
+    return signals[0]["result"]
+    
 async def start(update: Update,
 context:
 ContextTypes.DEFAULT_TYPE):
