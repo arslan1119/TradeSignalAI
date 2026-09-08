@@ -1,7 +1,7 @@
 import os
 import io
-import logging
 import asyncio
+import logging
 from datetime import datetime, timezone, timedelta
 
 import numpy as np
@@ -18,7 +18,6 @@ from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
 )
-
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -29,13 +28,9 @@ from telegram.ext import (
 )
 
 
-# =========================================================
-# TRADE SIGNAL AI - ULTIMATE EDITION
-# =========================================================
-
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s"
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 )
 
 logger = logging.getLogger("TradeSignalAI")
@@ -58,33 +53,11 @@ PAIRS = {
     "USD/CAD": "CAD=X",
     "USD/CHF": "CHF=X",
     "NZD/USD": "NZDUSD=X",
-
     "EUR/GBP": "EURGBP=X",
     "EUR/JPY": "EURJPY=X",
-    "EUR/CHF": "EURCHF=X",
-    "EUR/AUD": "EURAUD=X",
-    "EUR/CAD": "EURCAD=X",
-    "EUR/NZD": "EURNZD=X",
-
     "GBP/JPY": "GBPJPY=X",
-    "GBP/CHF": "GBPCHF=X",
-    "GBP/AUD": "GBPAUD=X",
-    "GBP/CAD": "GBPCAD=X",
-    "GBP/NZD": "GBPNZD=X",
-
     "AUD/JPY": "AUDJPY=X",
-    "AUD/CAD": "AUDCAD=X",
-    "AUD/CHF": "AUDCHF=X",
-    "AUD/NZD": "AUDNZD=X",
-
-    "NZD/JPY": "NZDJPY=X",
-    "NZD/CAD": "NZDCAD=X",
-    "NZD/CHF": "NZDCHF=X",
-
-    "CAD/JPY": "CADJPY=X",
-    "CAD/CHF": "CADCHF=X",
-
-    "CHF/JPY": "CHFJPY=X",
+    "EUR/CHF": "EURCHF=X",
 }
 
 
@@ -97,6 +70,11 @@ TIMEFRAMES = {
     "5 MIN": "5m",
 }
 
+PERIODS = {
+    "1m": "1d",
+    "5m": "5d",
+}
+
 
 # =========================================================
 # MAIN MENU
@@ -105,9 +83,9 @@ TIMEFRAMES = {
 MAIN_MENU = ReplyKeyboardMarkup(
     [
         ["📈 Live Signals", "🔥 Strongest Signal"],
-        ["💱 Select Pair", "🌍 All Pairs"],
-        ["⏱ Select Time", "📊 Market Analysis"],
-        ["📜 Signal History", "⚙️ Settings"],
+        ["💱 Select Pair", "⏱ Select Time"],
+        ["📊 Market Analysis", "📜 Signal History"],
+        ["🌍 All Pairs", "⚙️ Settings"],
         ["👑 Ultimate VIP", "❓ Help"],
     ],
     resize_keyboard=True
@@ -121,28 +99,64 @@ MAIN_MENU = ReplyKeyboardMarkup(
 PAIR_MENU = InlineKeyboardMarkup(
     [
         [
-            InlineKeyboardButton("🇪🇺 EUR/USD", callback_data="pair:EUR/USD"),
-            InlineKeyboardButton("🇬🇧 GBP/USD", callback_data="pair:GBP/USD"),
+            InlineKeyboardButton(
+                "EUR/USD",
+                callback_data="pair:EUR/USD"
+            ),
+            InlineKeyboardButton(
+                "GBP/USD",
+                callback_data="pair:GBP/USD"
+            ),
         ],
         [
-            InlineKeyboardButton("🇯🇵 USD/JPY", callback_data="pair:USD/JPY"),
-            InlineKeyboardButton("🇦🇺 AUD/USD", callback_data="pair:AUD/USD"),
+            InlineKeyboardButton(
+                "USD/JPY",
+                callback_data="pair:USD/JPY"
+            ),
+            InlineKeyboardButton(
+                "AUD/USD",
+                callback_data="pair:AUD/USD"
+            ),
         ],
         [
-            InlineKeyboardButton("🇨🇦 USD/CAD", callback_data="pair:USD/CAD"),
-            InlineKeyboardButton("🇨🇭 USD/CHF", callback_data="pair:USD/CHF"),
+            InlineKeyboardButton(
+                "USD/CAD",
+                callback_data="pair:USD/CAD"
+            ),
+            InlineKeyboardButton(
+                "USD/CHF",
+                callback_data="pair:USD/CHF"
+            ),
         ],
         [
-            InlineKeyboardButton("🇳🇿 NZD/USD", callback_data="pair:NZD/USD"),
-            InlineKeyboardButton("🇪🇺 EUR/GBP", callback_data="pair:EUR/GBP"),
+            InlineKeyboardButton(
+                "NZD/USD",
+                callback_data="pair:NZD/USD"
+            ),
+            InlineKeyboardButton(
+                "EUR/GBP",
+                callback_data="pair:EUR/GBP"
+            ),
         ],
         [
-            InlineKeyboardButton("🇪🇺 EUR/JPY", callback_data="pair:EUR/JPY"),
-            InlineKeyboardButton("🇬🇧 GBP/JPY", callback_data="pair:GBP/JPY"),
+            InlineKeyboardButton(
+                "EUR/JPY",
+                callback_data="pair:EUR/JPY"
+            ),
+            InlineKeyboardButton(
+                "GBP/JPY",
+                callback_data="pair:GBP/JPY"
+            ),
         ],
         [
-            InlineKeyboardButton("🇦🇺 AUD/JPY", callback_data="pair:AUD/JPY"),
-            InlineKeyboardButton("🇬🇧 GBP/CHF", callback_data="pair:GBP/CHF"),
+            InlineKeyboardButton(
+                "AUD/JPY",
+                callback_data="pair:AUD/JPY"
+            ),
+            InlineKeyboardButton(
+                "EUR/CHF",
+                callback_data="pair:EUR/CHF"
+            ),
         ],
     ]
 )
@@ -155,80 +169,108 @@ PAIR_MENU = InlineKeyboardMarkup(
 TIME_MENU = InlineKeyboardMarkup(
     [
         [
-            InlineKeyboardButton("⚡ 15 SEC", callback_data="time:15 SEC"),
-            InlineKeyboardButton("⚡ 30 SEC", callback_data="time:30 SEC"),
+            InlineKeyboardButton(
+                "⚡ 15 SEC",
+                callback_data="time:15 SEC"
+            ),
+            InlineKeyboardButton(
+                "⚡ 30 SEC",
+                callback_data="time:30 SEC"
+            ),
         ],
         [
-            InlineKeyboardButton("⏱ 1 MIN", callback_data="time:1 MIN"),
-            InlineKeyboardButton("⏱ 5 MIN", callback_data="time:5 MIN"),
+            InlineKeyboardButton(
+                "⏱ 1 MIN",
+                callback_data="time:1 MIN"
+            ),
+            InlineKeyboardButton(
+                "⏱ 5 MIN",
+                callback_data="time:5 MIN"
+            ),
         ],
     ]
 )
 
 
 # =========================================================
-# SETTINGS
+# USER STATE
 # =========================================================
 
-def settings(context):
+def state(context):
 
-    context.user_data.setdefault("pair", "EUR/USD")
-    context.user_data.setdefault("timeframe", "1 MIN")
-    context.user_data.setdefault("history", [])
+    context.user_data.setdefault(
+        "pair",
+        "EUR/USD"
+    )
+
+    context.user_data.setdefault(
+        "timeframe",
+        "1 MIN"
+    )
+
+    context.user_data.setdefault(
+        "history",
+        []
+    )
 
     return context.user_data
 
 
 # =========================================================
-# FETCH MARKET DATA
+# FETCH DATA
 # =========================================================
 
 def fetch_data(pair, timeframe):
 
+    if pair not in PAIRS:
+        raise ValueError("Unsupported pair")
+
     if timeframe not in TIMEFRAMES:
         raise ValueError(
-            "15 SEC and 30 SEC require a real-time tick/candle data provider. "
-            "This bot will not fake second-level market data."
+            "15 SEC and 30 SEC need a dedicated "
+            "real-time data provider."
         )
 
-    symbol = PAIRS[pair]
     interval = TIMEFRAMES[timeframe]
 
-    periods = {
-        "1m": "1d",
-        "5m": "5d",
-    }
-
     df = yf.download(
-        symbol,
-        period=periods[interval],
+        PAIRS[pair],
+        period=PERIODS[interval],
         interval=interval,
         progress=False,
         auto_adjust=False,
-        threads=False,
+        threads=False
     )
 
     if df is None or df.empty:
-        raise ValueError("Market data is unavailable.")
+        raise ValueError(
+            "Market data is unavailable. Try again later."
+        )
 
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
 
-    required = ["Open", "High", "Low", "Close"]
+    needed = [
+        "Open",
+        "High",
+        "Low",
+        "Close"
+    ]
 
-    for column in required:
-        if column not in df.columns:
-            raise ValueError(f"Missing market column: {column}")
+    if any(column not in df.columns for column in needed):
+        raise ValueError(
+            "Market data format is incomplete."
+        )
 
-    df = df[required].copy()
-
-    for column in required:
-        df[column] = pd.to_numeric(df[column], errors="coerce")
-
-    df = df.dropna()
+    df = df[needed].apply(
+        pd.to_numeric,
+        errors="coerce"
+    ).dropna()
 
     if len(df) < 60:
-        raise ValueError("Not enough candles for analysis.")
+        raise ValueError(
+            "Not enough candles for analysis."
+        )
 
     return df
 
@@ -241,8 +283,9 @@ def calculate_rsi(close, period=14):
 
     delta = close.diff()
 
-    gain = delta.where(delta > 0, 0.0)
-    loss = -delta.where(delta < 0, 0.0)
+    gain = delta.clip(lower=0)
+
+    loss = -delta.clip(upper=0)
 
     avg_gain = gain.ewm(
         alpha=1 / period,
@@ -254,73 +297,16 @@ def calculate_rsi(close, period=14):
         alpha=1 / period,
         min_periods=period,
         adjust=False
+    ).mean()
+
+    rs = avg_gain / avg_loss.replace(
+        0,
+        np.nan
     )
 
-    rs = avg_gain / avg_loss.replace(0, np.nan)
+    result = 100 - 100 / (1 + rs)
 
-    rsi = 100 - (100 / (1 + rs))
-
-    return rsi.fillna(50)
-
-
-# =========================================================
-# MACD
-# =========================================================
-
-def calculate_macd(close):
-
-    ema12 = close.ewm(span=12, adjust=False).mean()
-    ema26 = close.ewm(span=26, adjust=False).mean()
-
-    macd = ema12 - ema26
-
-    signal = macd.ewm(span=9, adjust=False).mean()
-
-    histogram = macd - signal
-
-    return macd, signal, histogram
-
-
-# =========================================================
-# BOLLINGER BANDS
-# =========================================================
-
-def calculate_bollinger(close):
-
-    middle = close.rolling(20).mean()
-
-    std = close.rolling(20).std()
-
-    upper = middle + (std * 2)
-    lower = middle - (std * 2)
-
-    return upper, middle, lower
-
-
-# =========================================================
-# ATR
-# =========================================================
-
-def calculate_atr(df, period=14):
-
-    high = df["High"]
-    low = df["Low"]
-    close = df["Close"]
-
-    previous_close = close.shift(1)
-
-    tr = pd.concat(
-        [
-            high - low,
-            (high - previous_close).abs(),
-            (low - previous_close).abs(),
-        ],
-        axis=1
-    ).max(axis=1)
-
-    atr = tr.rolling(period).mean()
-
-    return atr
+    return result.fillna(50)
 
 
 # =========================================================
@@ -329,78 +315,36 @@ def calculate_atr(df, period=14):
 
 def candle_pattern(df):
 
-    if len(df) < 3:
-        return "NEUTRAL"
-
-    last = df.iloc[-1]
     previous = df.iloc[-2]
+    current = df.iloc[-1]
 
-    body = abs(last["Close"] - last["Open"])
-    candle_range = max(
-        last["High"] - last["Low"],
-        1e-10
-    )
-
-    upper_wick = last["High"] - max(
-        last["Open"],
-        last["Close"]
-    )
-
-    lower_wick = min(
-        last["Open"],
-        last["Close"]
-    ) - last["Low"]
-
-    # Bullish engulfing
     if (
-        previous["Close"] < previous["Open"]
-        and last["Close"] > last["Open"]
-        and last["Close"] > previous["Open"]
-        and last["Open"] < previous["Close"]
+        previous.Close < previous.Open
+        and current.Close > current.Open
+        and current.Close >= previous.Open
+        and current.Open <= previous.Close
     ):
-        return "BULLISH ENGULFING"
+        return "Bullish Engulfing", "BUY"
 
-    # Bearish engulfing
     if (
-        previous["Close"] > previous["Open"]
-        and last["Close"] < last["Open"]
-        and last["Open"] > previous["Close"]
-        and last["Close"] < previous["Open"]
+        previous.Close > previous.Open
+        and current.Close < current.Open
+        and current.Open >= previous.Close
+        and current.Close <= previous.Open
     ):
-        return "BEARISH ENGULFING"
+        return "Bearish Engulfing", "SELL"
 
-    # Hammer
-    if lower_wick > body * 2 and body / candle_range < 0.4:
-        return "HAMMER"
+    if current.Close > current.Open:
+        return "Bullish Candle", "BUY"
 
-    # Shooting star
-    if upper_wick > body * 2 and body / candle_range < 0.4:
-        return "SHOOTING STAR"
+    if current.Close < current.Open:
+        return "Bearish Candle", "SELL"
 
-    if last["Close"] > last["Open"]:
-        return "BULLISH CANDLE"
-
-    if last["Close"] < last["Open"]:
-        return "BEARISH CANDLE"
-
-    return "NEUTRAL"
+    return "Neutral", "WAIT"
 
 
 # =========================================================
-# SUPPORT / RESISTANCE
-# =========================================================
-
-def support_resistance(df):
-
-    support = float(df["Low"].tail(30).min())
-
-    resistance = float(df["High"].tail(30).max())
-
-    return support, resistance
-
-
-# =========================================================
-# MAIN ANALYSIS
+# ANALYSIS
 # =========================================================
 
 def analyze(pair, timeframe):
@@ -410,322 +354,216 @@ def analyze(pair, timeframe):
     close = df["Close"]
 
     # EMA
-    ema20 = close.ewm(span=20, adjust=False).mean()
-    ema50 = close.ewm(span=50, adjust=False).mean()
+    ema20 = close.ewm(
+        span=20,
+        adjust=False
+    ).mean()
+
+    ema50 = close.ewm(
+        span=50,
+        adjust=False
+    ).mean()
 
     # RSI
-    rsi = calculate_rsi(close)
+    rsi14 = calculate_rsi(close)
 
     # MACD
-    macd, macd_signal, histogram = calculate_macd(close)
+    ema12 = close.ewm(
+        span=12,
+        adjust=False
+    ).mean()
+
+    ema26 = close.ewm(
+        span=26,
+        adjust=False
+    ).mean()
+
+    macd = ema12 - ema26
+
+    macd_signal = macd.ewm(
+        span=9,
+        adjust=False
+    ).mean()
 
     # Bollinger
-    bb_upper, bb_middle, bb_lower = calculate_bollinger(close)
+    bb_middle = close.rolling(20).mean()
 
-    # ATR
-    atr = calculate_atr(df)
+    bb_std = close.rolling(20).std()
 
-    # Price
+    bb_upper = bb_middle + 2 * bb_std
+    bb_lower = bb_middle - 2 * bb_std
+
     price = float(close.iloc[-1])
 
-    e20 = float(ema20.iloc[-1])
-    e50 = float(ema50.iloc[-1])
+    buy = 0
+    sell = 0
 
-    rsi_value = float(rsi.iloc[-1])
+    # EMA trend
 
-    macd_value = float(macd.iloc[-1])
-    macd_signal_value = float(macd_signal.iloc[-1])
+    if ema20.iloc[-1] > ema50.iloc[-1]:
 
-    upper_band = float(bb_upper.iloc[-1])
-    lower_band = float(bb_lower.iloc[-1])
-
-    atr_value = float(atr.iloc[-1])
-
-    support, resistance = support_resistance(df)
-
-    pattern = candle_pattern(df)
-
-    buy_score = 0
-    sell_score = 0
-
-    reasons_buy = []
-    reasons_sell = []
-
-
-    # =====================================================
-    # TREND
-    # =====================================================
-
-    if e20 > e50:
-
-        buy_score += 25
-        reasons_buy.append("EMA20 > EMA50")
-
-    elif e20 < e50:
-
-        sell_score += 25
-        reasons_sell.append("EMA20 < EMA50")
-
-
-    # =====================================================
-    # PRICE POSITION
-    # =====================================================
-
-    if price > e20:
-
-        buy_score += 15
-        reasons_buy.append("Price above EMA20")
+        buy += 25
 
     else:
 
-        sell_score += 15
-        reasons_sell.append("Price below EMA20")
+        sell += 25
 
+    # Price position
 
-    # =====================================================
+    if price > ema20.iloc[-1]:
+
+        buy += 15
+
+    else:
+
+        sell += 15
+
     # RSI
-    # =====================================================
 
-    if 52 <= rsi_value <= 68:
+    rsi_value = float(rsi14.iloc[-1])
 
-        buy_score += 15
-        reasons_buy.append("RSI bullish zone")
+    if 52 <= rsi_value <= 70:
 
-    elif 32 <= rsi_value <= 48:
+        buy += 15
 
-        sell_score += 15
-        reasons_sell.append("RSI bearish zone")
+    elif 30 <= rsi_value < 48:
+
+        sell += 15
 
     elif rsi_value < 30:
 
-        buy_score += 8
-        reasons_buy.append("RSI oversold")
+        buy += 8
 
     elif rsi_value > 70:
 
-        sell_score += 8
-        reasons_sell.append("RSI overbought")
+        sell += 8
 
-
-    # =====================================================
     # MACD
-    # =====================================================
 
-    if macd_value > macd_signal_value:
+    if macd.iloc[-1] > macd_signal.iloc[-1]:
 
-        buy_score += 15
-        reasons_buy.append("MACD bullish")
+        buy += 15
 
     else:
 
-        sell_score += 15
-        reasons_sell.append("MACD bearish")
+        sell += 15
 
+    # Momentum
 
-    # =====================================================
-    # MOMENTUM
-    # =====================================================
-
-    momentum = float(close.iloc[-1] - close.iloc[-5])
+    momentum = float(
+        close.iloc[-1] -
+        close.iloc[-5]
+    )
 
     if momentum > 0:
 
-        buy_score += 10
-        reasons_buy.append("Positive momentum")
+        buy += 10
 
     elif momentum < 0:
 
-        sell_score += 10
-        reasons_sell.append("Negative momentum")
+        sell += 10
 
+    # Candle
 
-    # =====================================================
-    # CANDLE PATTERN
-    # =====================================================
+    pattern, direction = candle_pattern(df)
 
-    bullish_patterns = [
-        "BULLISH ENGULFING",
-        "HAMMER",
-        "BULLISH CANDLE",
-    ]
+    if direction == "BUY":
 
-    bearish_patterns = [
-        "BEARISH ENGULFING",
-        "SHOOTING STAR",
-        "BEARISH CANDLE",
-    ]
+        buy += 10
 
-    if pattern in bullish_patterns:
+    elif direction == "SELL":
 
-        buy_score += 15
-        reasons_buy.append(pattern)
+        sell += 10
 
-    elif pattern in bearish_patterns:
+    # Bollinger
 
-        sell_score += 15
-        reasons_sell.append(pattern)
+    if (
+        pd.notna(bb_lower.iloc[-1])
+        and price <= bb_lower.iloc[-1]
+    ):
 
+        buy += 5
 
-    # =====================================================
-    # BOLLINGER POSITION
-    # =====================================================
+    if (
+        pd.notna(bb_upper.iloc[-1])
+        and price >= bb_upper.iloc[-1]
+    ):
 
-    if price <= lower_band:
+        sell += 5
 
-        buy_score += 8
-        reasons_buy.append("Near lower Bollinger")
+    # Final signal
 
-    elif price >= upper_band:
-
-        sell_score += 8
-        reasons_sell.append("Near upper Bollinger")
-
-
-    # =====================================================
-    # SIGNAL
-    # =====================================================
-
-    if buy_score >= 60 and buy_score > sell_score:
+    if buy >= 55 and buy > sell:
 
         signal = "🟢 BUY"
         trend = "📈 UP TREND"
-        score = buy_score
-        reasons = reasons_buy
+        score = buy
 
-    elif sell_score >= 60 and sell_score > buy_score:
+    elif sell >= 55 and sell > buy:
 
         signal = "🔴 SELL"
         trend = "📉 DOWN TREND"
-        score = sell_score
-        reasons = reasons_sell
+        score = sell
 
     else:
 
         signal = "🟡 WAIT"
         trend = "↔️ SIDEWAYS"
-        score = max(buy_score, sell_score)
-        reasons = ["No strong confirmation"]
+        score = max(buy, sell)
 
-
-    # =====================================================
-    # ANALYSIS SCORE
-    # =====================================================
+    # Analysis score, not guaranteed win rate
 
     confidence = min(
-        95,
-        max(
-            40,
-            int(score)
-        )
+        90,
+        max(40, int(score))
     )
 
-
-    # =====================================================
-    # STRENGTH
-    # =====================================================
-
-    trend_distance = (
-        abs(e20 - e50)
-        / max(abs(price), 1e-10)
-    ) * 100000
-
-    if trend_distance < 5:
-
-        strength = "🟡 WEAK"
-
-    elif trend_distance < 15:
-
-        strength = "🟠 MEDIUM"
-
-    else:
-
-        strength = "🟢 STRONG"
-
-
-    # =====================================================
-    # MARKET SENTIMENT
-    # =====================================================
-
-    sentiment = min(
-        100,
-        max(
-            0,
-            int((buy_score / max(buy_score + sell_score, 1)) * 100)
-        )
+    support = float(
+        df["Low"].tail(30).min()
     )
 
+    resistance = float(
+        df["High"].tail(30).max()
+    )
 
     return {
-
         "pair": pair,
         "timeframe": timeframe,
-
-        "price": price,
-
-        "ema20": e20,
-        "ema50": e50,
-
-        "rsi": rsi_value,
-
-        "macd": macd_value,
-        "macd_signal": macd_signal_value,
-
-        "bb_upper": upper_band,
-        "bb_lower": lower_band,
-
-        "atr": atr_value,
-
         "signal": signal,
         "trend": trend,
-
         "confidence": confidence,
-        "strength": strength,
-
+        "price": price,
+        "ema20": float(ema20.iloc[-1]),
+        "ema50": float(ema50.iloc[-1]),
+        "rsi": rsi_value,
+        "macd": float(macd.iloc[-1]),
+        "macd_signal": float(
+            macd_signal.iloc[-1]
+        ),
         "support": support,
         "resistance": resistance,
-
         "pattern": pattern,
-
-        "sentiment": sentiment,
-
-        "reasons": reasons,
-
         "df": df,
         "ema20_series": ema20,
         "ema50_series": ema50,
-        "rsi_series": rsi,
-
+        "rsi_series": rsi14,
     }
 
 
 # =========================================================
-# CREATE MARKET CHART
+# CREATE CHART
 # =========================================================
 
 def create_chart(result):
 
     df = result["df"].tail(60)
 
-    ema20 = result["ema20_series"].tail(60)
-    ema50 = result["ema50_series"].tail(60)
-
-    rsi = result["rsi_series"].tail(60)
-
-    fig = plt.figure(figsize=(12, 8))
-
-    ax1 = plt.subplot2grid(
-        (4, 1),
-        (0, 0),
-        rowspan=3
+    fig, (ax1, ax2) = plt.subplots(
+        2,
+        1,
+        figsize=(10, 7),
+        height_ratios=[3, 1]
     )
-
-    ax2 = plt.subplot2grid(
-        (4, 1),
-        (3, 0)
-    )
-
-
-    # Price line
 
     ax1.plot(
         df.index,
@@ -735,16 +573,15 @@ def create_chart(result):
 
     ax1.plot(
         df.index,
-        ema20,
-        label="EMA 20"
+        result["ema20_series"].tail(60),
+        label="EMA20"
     )
 
     ax1.plot(
         df.index,
-        ema50,
-        label="EMA 50"
+        result["ema50_series"].tail(60),
+        label="EMA50"
     )
-
 
     ax1.axhline(
         result["support"],
@@ -758,22 +595,18 @@ def create_chart(result):
         label="Resistance"
     )
 
-
     ax1.set_title(
-        f"{result['pair']} | {result['timeframe']} | {result['signal']}"
+        f"{result['pair']} | "
+        f"{result['timeframe']} | "
+        f"{result['signal']}"
     )
 
+    ax1.grid(True)
     ax1.legend()
 
-    ax1.grid(True)
-
-
-    # RSI
-
     ax2.plot(
-        rsi.index,
-        rsi,
-        label="RSI 14"
+        df.index,
+        result["rsi_series"].tail(60)
     )
 
     ax2.axhline(
@@ -787,78 +620,77 @@ def create_chart(result):
     )
 
     ax2.set_ylim(0, 100)
-
     ax2.set_title("RSI 14")
-
     ax2.grid(True)
-
 
     plt.tight_layout()
 
     buffer = io.BytesIO()
 
-    plt.savefig(
+    fig.savefig(
         buffer,
         format="png",
-        dpi=150
+        dpi=130
     )
 
     buffer.seek(0)
 
-    plt.close()
+    plt.close(fig)
 
     return buffer
 
 
 # =========================================================
-# FORMAT ANALYSIS
+# FORMAT RESULT
 # =========================================================
 
-def format_analysis(a):
+def format_analysis(result):
 
-    now = datetime.now(UTC5).strftime("%H:%M:%S")
-
-    reasons = "\n".join(
-        f"✅ {reason}"
-        for reason in a["reasons"][:5]
+    now = datetime.now(UTC5).strftime(
+        "%H:%M:%S"
     )
 
     return (
-
-        "👑 <b>TRADE SIGNAL AI - ULTIMATE VIP</b>\n"
+        "👑 <b>TRADE SIGNAL AI</b>\n"
         "━━━━━━━━━━━━━━━━━━\n\n"
 
-        f"💱 <b>PAIR:</b> {a['pair']}\n"
-        f"⏱ <b>TIMEFRAME:</b> {a['timeframe']}\n"
-        f"🕒 <b>UTC+5:</b> {now}\n\n"
+        f"💱 Pair: <b>{result['pair']}</b>\n"
+        f"⏱ Timeframe: <b>{result['timeframe']}</b>\n"
+        f"🕒 UTC+5: <b>{now}</b>\n\n"
 
-        f"🚦 <b>SIGNAL:</b> {a['signal']}\n"
-        f"🎯 <b>ANALYSIS SCORE:</b> {a['confidence']}%\n"
-        f"🔥 <b>TREND:</b> {a['trend']}\n"
-        f"💪 <b>STRENGTH:</b> {a['strength']}\n\n"
+        f"🚦 Signal: <b>{result['signal']}</b>\n"
+        f"🎯 Analysis Score: "
+        f"<b>{result['confidence']}%</b>\n"
+        f"🔥 Trend: <b>{result['trend']}</b>\n\n"
 
-        "📊 <b>TECHNICAL ANALYSIS</b>\n\n"
+        "📊 <b>ANALYSIS</b>\n\n"
 
-        f"💰 Price: <b>{a['price']:.5f}</b>\n"
-        f"📈 EMA 20: <b>{a['ema20']:.5f}</b>\n"
-        f"📉 EMA 50: <b>{a['ema50']:.5f}</b>\n"
-        f"📊 RSI 14: <b>{a['rsi']:.2f}</b>\n\n"
+        f"💰 Price: "
+        f"<b>{result['price']:.5f}</b>\n"
 
-        f"📈 MACD: <b>{a['macd']:.6f}</b>\n"
-        f"📊 MACD Signal: <b>{a['macd_signal']:.6f}</b>\n\n"
+        f"📈 EMA20: "
+        f"{result['ema20']:.5f}\n"
 
-        f"📉 Support: <b>{a['support']:.5f}</b>\n"
-        f"📈 Resistance: <b>{a['resistance']:.5f}</b>\n\n"
+        f"📉 EMA50: "
+        f"{result['ema50']:.5f}\n"
 
-        f"🕯 <b>Candle:</b> {a['pattern']}\n"
-        f"🌡 <b>ATR:</b> {a['atr']:.5f}\n"
-        f"📊 <b>Market Sentiment:</b> {a['sentiment']}%\n\n"
+        f"📊 RSI14: "
+        f"{result['rsi']:.2f}\n"
 
-        "🔍 <b>CONFIRMATIONS</b>\n"
-        f"{reasons}\n\n"
+        f"📈 MACD: "
+        f"{result['macd']:.6f}\n"
 
-        "⚠️ <i>This is automated technical analysis, "
-        "not a guaranteed trading result.</i>"
+        f"🕯 Candle: "
+        f"<b>{result['pattern']}</b>\n"
+
+        f"🟩 Support: "
+        f"{result['support']:.5f}\n"
+
+        f"🟥 Resistance: "
+        f"{result['resistance']:.5f}\n\n"
+
+        "⚠️ <i>Technical analysis only. "
+        "Profit is not guaranteed.</i>"
     )
 
 
@@ -871,27 +703,14 @@ async def start(
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    settings(context)
+    state(context)
 
     await update.message.reply_text(
-
-        "👑 <b>TradeSignal AI</b>\n\n"
-        "🚀 <b>ULTIMATE VIP EDITION</b>\n\n"
-
-        "📊 EMA • RSI • MACD\n"
-        "📈 Bollinger Bands\n"
-        "🕯 Candle Analysis\n"
-        "📉 Support & Resistance\n"
-        "🔥 Trend Detection\n"
-        "🖼 Market Chart\n\n"
-
-        "🌍 Timezone: <b>UTC+5</b>\n\n"
-
+        "👑 <b>TradeSignal AI - Ultimate</b>\n\n"
+        "🌍 Timezone: UTC+5\n\n"
         "Select an option below 👇",
-
         reply_markup=MAIN_MENU,
         parse_mode="HTML"
-
     )
 
 
@@ -905,13 +724,191 @@ async def show_pair(
 ):
 
     await update.message.reply_text(
-
-        "💱 <b>Select Forex Pair:</b>",
-
+        "💱 <b>Select Pair:</b>",
         reply_markup=PAIR_MENU,
-
         parse_mode="HTML"
+    )
 
+
+# =========================================================
+# SHOW TIME
+# =========================================================
+
+async def show_time(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    await update.message.reply_text(
+        "⏱ <b>Select Timeframe:</b>\n\n"
+        "⚠️ 15 SEC and 30 SEC need a dedicated "
+        "real-time data provider.",
+        reply_markup=TIME_MENU,
+        parse_mode="HTML"
+    )
+
+
+# =========================================================
+# SEND ANALYSIS
+# =========================================================
+
+async def send_analysis(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    user = state(context)
+
+    await update.message.reply_text(
+        "🔄 <b>Analyzing market data...</b>",
+        parse_mode="HTML"
+    )
+
+    try:
+
+        result = await asyncio.to_thread(
+            analyze,
+            user["pair"],
+            user["timeframe"]
+        )
+
+        chart = await asyncio.to_thread(
+            create_chart,
+            result
+        )
+
+        user["history"].append(
+            (
+                datetime.now(UTC5).strftime("%H:%M"),
+                result["pair"],
+                result["timeframe"],
+                result["signal"],
+                result["confidence"]
+            )
+        )
+
+        user["history"] = user["history"][-20:]
+
+        await update.message.reply_photo(
+            chart,
+            caption=format_analysis(result),
+            parse_mode="HTML"
+        )
+
+    except Exception as error:
+
+        logger.exception("Analysis failed")
+
+        await update.message.reply_text(
+            "⚠️ <b>Analysis could not be completed.</b>\n\n"
+            f"<code>{error}</code>",
+            parse_mode="HTML"
+        )
+
+
+# =========================================================
+# STRONGEST SIGNAL
+# =========================================================
+
+async def strongest(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    await update.message.reply_text(
+        "🔥 <b>Scanning pairs...</b>",
+        parse_mode="HTML"
+    )
+
+    best = None
+
+    for pair in PAIRS:
+
+        try:
+
+            result = await asyncio.to_thread(
+                analyze,
+                pair,
+                "5 MIN"
+            )
+
+            if (
+                result["signal"] != "🟡 WAIT"
+                and (
+                    best is None
+                    or result["confidence"]
+                    > best["confidence"]
+                )
+            ):
+
+                best = result
+
+        except Exception as error:
+
+            logger.warning(
+                "%s skipped: %s",
+                pair,
+                error
+            )
+
+    if best is None:
+
+        await update.message.reply_text(
+            "🟡 No strong setup found right now."
+        )
+
+        return
+
+    chart = await asyncio.to_thread(
+        create_chart,
+        best
+    )
+
+    await update.message.reply_photo(
+        chart,
+        caption=(
+            "🔥 <b>STRONGEST CURRENT SETUP</b>\n\n"
+            + format_analysis(best)
+        ),
+        parse_mode="HTML"
+    )
+
+
+# =========================================================
+# HISTORY
+# =========================================================
+
+async def show_history(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    items = state(context)["history"]
+
+    if not items:
+
+        await update.message.reply_text(
+            "📜 No analysis history yet."
+        )
+
+        return
+
+    text = "📜 <b>SIGNAL HISTORY</b>\n\n"
+
+    for time_value, pair, timeframe, signal, score in reversed(
+        items[-10:]
+    ):
+
+        text += (
+            f"🕒 {time_value} | "
+            f"💱 {pair} | "
+            f"⏱ {timeframe}\n"
+            f"{signal} | 🎯 {score}%\n\n"
+        )
+
+    await update.message.reply_text(
+        text,
+        parse_mode="HTML"
     )
 
 
@@ -921,4 +918,78 @@ async def show_pair(
 
 async def all_pairs(
     update: Update,
-    context: ContextTypes.D
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    text = (
+        "🌍 <b>SUPPORTED PAIRS</b>\n\n"
+        + "\n".join(
+            f"• {pair}"
+            for pair in PAIRS
+        )
+    )
+
+    await update.message.reply_text(
+        text,
+        parse_mode="HTML"
+    )
+
+
+# =========================================================
+# SETTINGS
+# =========================================================
+
+async def show_settings(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    user = state(context)
+
+    await update.message.reply_text(
+        "⚙️ <b>SETTINGS</b>\n\n"
+        f"💱 Pair: <b>{user['pair']}</b>\n"
+        f"⏱ Time: <b>{user['timeframe']}</b>\n"
+        "🕒 Timezone: <b>UTC+5</b>",
+        parse_mode="HTML"
+    )
+
+
+# =========================================================
+# VIP
+# =========================================================
+
+async def vip(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    await update.message.reply_text(
+        "👑 <b>ULTIMATE FEATURES</b>\n\n"
+        "✅ EMA20 / EMA50\n"
+        "✅ RSI14\n"
+        "✅ MACD\n"
+        "✅ Bollinger Bands\n"
+        "✅ Candle Analysis\n"
+        "✅ Support / Resistance\n"
+        "✅ Market Chart\n"
+        "✅ Signal History\n"
+        "✅ UTC+5",
+        parse_mode="HTML"
+    )
+
+
+# =========================================================
+# HELP
+# =========================================================
+
+async def help_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    await update.message.reply_text(
+        "❓ <b>HOW TO USE</b>\n\n"
+        "1️⃣ Select Pair\n"
+        "2️⃣ Select Time\n"
+        "3️⃣ Press
