@@ -172,7 +172,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message.text
     
     if message == "📈 Live Signals":
-    analysis = find_best_signal()
+        analysis = find_best_signal()
 
     await update.message.reply_text(
         analysis,
